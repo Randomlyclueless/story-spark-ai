@@ -9,7 +9,10 @@ import { JwtHalers } from "./utils/jwt.helper";
 import { Secret } from "jsonwebtoken";
 import logger from "./utils/logger.util";
 
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
+// Override DNS resolvers only when explicitly configured; default to the platform resolver.
+if (config.dns_servers?.length) {
+  dns.setServers(config.dns_servers);
+}
 
 if (config.disable_logs) {
   const noop = () => undefined;
