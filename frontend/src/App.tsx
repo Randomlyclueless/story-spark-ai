@@ -53,6 +53,7 @@ import MagicCursorComponent from "./components/magic-cursor/magic_cursor.compone
 import ContributorsComponent from "./components/footer/contributors";
 import BranchingStory from "./components/stories/BranchingStory";
 import ReportBug from "./components/report-bug/ReportBug";
+import ForgotPasswordComponent from "./components/forgot-password/forgot-password.component";
 import AnalyticsPage from "./components/dashboard/analytics/analytics.page";
 import StoryWorkspace from "./components/story/StoryWorkspace";
 import Scrolltotopandscrolltobottom from "./components/Scrolltotopandscrolltobottom.tsx"
@@ -116,6 +117,7 @@ const router = createBrowserRouter([
       { path: "guidelines", element: <GuidelinesComponent /> },
       { path: "contributors", element: <ContributorsComponent /> },
       { path: "report-bug", element: <ReportBug /> },
+      { path: "forgot-password", element: <ForgotPasswordComponent /> },
 
       // Protected Sub-Tree running under the RootLayout context
       {
