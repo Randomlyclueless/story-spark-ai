@@ -1,4 +1,5 @@
 import React from "react";
+import ImageFallback from "../../ImageFallback";
 
 type SSProfileProps = {
   name: string;
@@ -22,11 +23,11 @@ const SSProfile: React.FC<SSProfileProps> = ({
   const textSize = size.includes("h-8") ? "text-xs" : size.includes("h-12") ? "text-sm" : "text-lg";
   return (
     <div
-      className={`rounded-full flex items-center justify-center text-gray-300 font-bold overflow-hidden border border-gray-500 ${size} ${textSize}`}
+      className={`rounded-full flex items-center justify-center text-slate-700 dark:text-gray-300 font-bold overflow-hidden border border-gray-500 ${size} ${textSize}`}
     >
       {imageUrl ? (
-        <img
-          className="h-full w-full rounded-full object-cover object-center"
+        <ImageFallback
+          className="h-full w-full object-cover rounded-full"
           src={imageUrl}
           alt={name}
         />

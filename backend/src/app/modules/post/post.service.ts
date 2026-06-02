@@ -4,6 +4,7 @@ import { User } from "../user/user.model";
 import { IPost, IPostPayload, IPostSearchFields } from "./post.interface";
 import httpStatus from "http-status";
 import { Post } from "./post.model";
+import { Bookmark } from "../bookmark/bookmark.model";
 import { StoryVersionService } from "../story_version/story_version.service";
 import {
   IGenericResponse,
@@ -58,6 +59,7 @@ const getPosts = async (
     filters;
   const andCondition: Record<string, unknown>[] = [
     { isDeleted: { $ne: true } },
+    { isPublished: true },
   ];
 
   if (searchTerm) {
@@ -137,9 +139,68 @@ const getPosts = async (
   };
 };
 
+const getPublishedPostsByAuthor = async (
+  token: ITokenPayload,
+  filters: Pick<IPostSearchFields, "searchTerm">,
+  pagination: IPaginationOptions
+): Promise<IGenericResponse<IPost[]>> => {
+  const { page, limit, skip, sortBy, orderBy } = paginationHelper(pagination);
+  const user = await User.findOne({ email: token.email, role: token.role });
+
+  if (!user) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "User not found!");
+  }
+
+  const andCondition: Record<string, unknown>[] = [
+    { author: user._id },
+    { isPublished: true },
+    { isDeleted: { $ne: true } },
+  ];
+
+  if (filters.searchTerm) {
+    andCondition.push({
+      $or: postSearchFields.map((field) => ({
+        [field]: {
+          $regex: filters.searchTerm,
+          $options: "i",
+        },
+      })),
+    });
+  }
+
+  const sortCondition: { [key: string]: SortOrder } = {};
+  if (sortBy && orderBy) {
+    sortCondition[sortBy] = orderBy === "asc" ? 1 : -1;
+  } else {
+    sortCondition.publishedAt = -1;
+    sortCondition.createdAt = -1;
+  }
+
+  const whereCondition = { $and: andCondition };
+  const result = await Post.find(whereCondition)
+    .sort(sortCondition)
+    .skip(skip)
+    .limit(limit)
+    .populate("author", "name createdAt")
+    .populate({
+      path: "reactions",
+      populate: { path: "userId", select: "_id" },
+    });
+  const total = await Post.countDocuments(whereCondition);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
+
 const getLatestPosts = async () => {
   try {
-    const res = await Post.find({ isDeleted: { $ne: true } })
+    const res = await Post.find({ isDeleted: { $ne: true }, isPublished: true })
       .sort({ createdAt: -1 })
       .limit(50)
       .populate("author", "name email createdAt")
@@ -162,6 +223,7 @@ const getFeaturedPosts = async () => {
     const res = await Post.find({
       isFeaturedPost: true,
       isDeleted: { $ne: true },
+      isPublished: true,
     })
       .sort({ createdAt: -1, updatedBy: -1 })
       .limit(10)
@@ -232,7 +294,9 @@ const toggleBookmark = async (postId: string, token: ITokenPayload) => {
   if (!user) {
     throw new ApiError(httpStatus.BAD_REQUEST, "User not found!");
   }
- const post = await Post.findOne({ _id: postId, isDeleted: { $ne: true } });
+
+  const post = await Post.findOne({ _id: postId, isDeleted: { $ne: true } });
+
   if (!post) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Post not found!");
   }
@@ -332,12 +396,79 @@ const deletePost = async (postId: string, token: ITokenPayload) => {
     await user.save();
   }
 
+  // Clean up associated bookmarks when story post is soft-deleted
+  await Bookmark.deleteMany({ storyId: postId });
+
   return post;
+};
+
+const remixStory = async (postId: string, prompt: string, token: ITokenPayload) => {
+  const user = await User.findOne({ email: token.email });
+  if (!user) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "User not found!");
+  }
+
+  const originalPost = await Post.findOne({ _id: postId, isDeleted: { $ne: true } });
+  if (!originalPost) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Original story post not found!");
+  }
+
+  const remixedContent = `[AI Remixed Version based on prompt: "${prompt}"]\n\n${originalPost.content}`;
+
+  const res = await Post.create({
+    title: `Remix of ${originalPost.title}`,
+    content: remixedContent,
+    author: user._id,
+    updatedBy: user._id,
+    tag: originalPost.tag,
+  });
+
+  if (res) {
+    user.postsCount += 1;
+    await user.save();
+  }
+
+  return res;
+};
+
+const translateStory = async (postId: string, language: string, token: ITokenPayload) => {
+  const user = await User.findOne({ email: token.email });
+  if (!user) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "User not found!");
+  }
+
+  const originalPost = await Post.findOne({ _id: postId, isDeleted: { $ne: true } });
+  if (!originalPost) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Original story post not found!");
+  }
+
+  const translatedContent = `[Translated to ${language}]\n\n${originalPost.content}`;
+
+  const res = await Post.create({
+    title: `${originalPost.title} (${language})`,
+    content: translatedContent,
+    author: user._id,
+    updatedBy: user._id,
+    tag: originalPost.tag,
+  });
+
+  if (res) {
+    user.postsCount += 1;
+    await user.save();
+  }
+
+  return res;
+};
+
+const getGenres = async (): Promise<string[]> => {
+  const genres = await Post.distinct("tag", { isDeleted: { $ne: true }, tag: { $nin: [null, ""] } });
+  return genres.sort();
 };
 
 export const PostService = {
   createPost,
   getPosts,
+  getPublishedPostsByAuthor,
   getLatestPosts,
   getFeaturedPosts,
   doFeaturedPosts,
@@ -346,5 +477,8 @@ export const PostService = {
   toggleBookmark,
   updatePost,
   deletePost,
+  remixStory,
+  translateStory,
+  getGenres,
 };
 
