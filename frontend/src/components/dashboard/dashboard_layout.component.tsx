@@ -176,6 +176,7 @@ import { Link, Outlet, useLocation, useNavigate, Navigate } from "react-router-d
 import { MenuItem, menuItems } from "./dashboard.utils";
 import { getUserInfo } from "../../services/auth.service";
 import { useGetProfileInfoQuery } from "../../redux/apis/user.api";
+
 const DashboardLayout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
@@ -184,7 +185,11 @@ const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
 
   const user = getUserInfo();
-  const { data } = useGetProfileInfoQuery(undefined, { skip: !user });
+
+  const { data: userProfile } = useGetProfileInfoQuery(undefined, {
+    skip: !user,
+  });
+
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -242,9 +247,14 @@ const DashboardLayout: React.FC = () => {
             </span>
           </button>
 
-         <img
-  className="h-9 w-9 rounded-full"
-  src={data?.profile?.avatar || "https://ui-avatars.com/api/?name=User"}
+<img
+  className="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-white/10"
+  src={
+    userProfile?.profile?.avatar ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user?.name || "User"
+    )}&background=random`
+  }
   alt="profile"
 />
         </div>
