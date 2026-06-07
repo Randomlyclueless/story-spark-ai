@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../../utils/email.util';
 import nodemailer from "nodemailer";
 import { IEmailBody } from "./verify_email.interface";
 import { IVerifyOtpBody } from "./verify_email.interface";
