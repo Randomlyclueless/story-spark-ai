@@ -12,8 +12,11 @@ import httpStatus from "http-status";
 import cookieParser from "cookie-parser";
 import config from "./config";
 import { Routers } from "./router";
+import storyRoutes from "./routes/story.routes";
 import globalErrorHandler from "./app/middleware/global.error.handler";
 import { User } from "./app/modules/user/user.model";
+
+import { NewsletterSubscriber } from "./app/modules/newsletter/newsletter.model";
 
 const app: Application = express();
 app.set("trust proxy", 1);
@@ -40,11 +43,11 @@ const corsOrigins =
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) {
-        return callback(new Error("Origin header required"));
+      if (!origin && process.env.NODE_ENV === 'production') {
+        return callback(new Error('Origin header required in production'));
       }
 
-      if (corsOrigins.includes(origin)) {
+      if (!origin || corsOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Blocked by Cross-Origin Resource Sharing (CORS) Policy"));
