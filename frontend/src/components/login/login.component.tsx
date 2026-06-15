@@ -286,6 +286,7 @@ const LoginComponent = () => {
               validation={{ required: "Email is required" }}
               error={errors.email}
               autoComplete="email"
+          className="w-full box-border"
               />
 
               <SSInput
