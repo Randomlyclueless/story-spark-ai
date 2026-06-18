@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import ExploreViewListComponent from "./post.view.list.component";
 import ExploreFeatureComponent from "./post.feature.component";
 import { Link } from "react-router-dom";
@@ -15,6 +15,7 @@ export const ExploreComponent = () => {
   const [page, setPage] = useState<number>(1);
   const [featuredPost, setFeaturedPost] = useState<boolean>(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
   const query: Record<string, string | number> = {
     page,
@@ -73,6 +74,14 @@ export const ExploreComponent = () => {
 
   const availableGenres = genres ?? [];
 
+  const filteredSuggestions = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    const term = searchTerm.toLowerCase();
+    const tagSuggestions = availableTags.filter(tag => tag.toLowerCase().includes(term));
+    const genreSuggestions = (availableGenres ?? []).filter(g => g.toLowerCase().includes(term)).map(g => `#${g.toLowerCase()}`);
+    return [...new Set([...tagSuggestions, ...genreSuggestions])].slice(0, 8);
+  }, [searchTerm, availableTags, availableGenres]);
+
   return (
     <div className="pt-0 min-h-screen bg-white text-slate-900 relative overflow-hidden transition-colors duration-300 dark:bg-[#0b1329] dark:text-white">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -97,10 +106,39 @@ export const ExploreComponent = () => {
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setPage(1);
+                  setIsDropdownOpen(true);
                 }}
+                onFocus={() => setIsDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
               />
 
               <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+
+              {isDropdownOpen && searchTerm && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto">
+                  {filteredSuggestions.length > 0 ? (
+                    filteredSuggestions.map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onMouseDown={() => {
+                          setSearchTerm(suggestion);
+                          setIsDropdownOpen(false);
+                          setPage(1);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
+                      >
+                        <i className="fas fa-search text-slate-400 text-xs"></i>
+                        <span>{suggestion}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                      <i className="fas fa-info-circle text-slate-400"></i>
+                      No suggestions found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
