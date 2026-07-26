@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 
+
 export const useScrollDirection = () => {
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down'>('up');
   const [isAtTop, setIsAtTop] = useState(true);
   const lastScrollYRef = useRef(0);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;

@@ -14,6 +14,7 @@ const NotificationSchema: Schema<INotification> = new Schema<
   },
   { timestamps: true }
 );
+
 NotificationSchema.index({ userId: 1, createdAt: -1 });
 export const Notification = model<INotification, NotificationModel>(
   "Notification",

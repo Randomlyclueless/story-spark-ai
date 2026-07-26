@@ -11,7 +11,7 @@ const handleCastError = (err: mongoose.Error.CastError) => {
   ];
   return {
     statusCode,
-    message: `Invalid ${err.path}: "${err.value}" could not be cast to a valid ObjectId`,
+    message: `Cast Error: value '${err.value}' for path '${err.path}' could not be cast to type '${err.kind}'.`,
     errorMessages: errors,
   };
 };
